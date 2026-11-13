@@ -1,6 +1,8 @@
 import { TalkingHead } from '@met4citizen/talkinghead/modules/talkinghead.mjs';
+import { LipsyncEn } from '@met4citizen/talkinghead/modules/lipsync-en.mjs';
 
-const MODEL_URL = '/models/sniffer_avatar_lite.glb';
+// A host page may provide the model itself (e.g. as a blob: URL) via window.SNIFFER_MODEL_URL.
+const MODEL_URL: string = (window as any).SNIFFER_MODEL_URL ?? 'models/sniffer_avatar_lite.glb';
 const BODY_BONES = ['Hips', 'Spine', 'Spine1', 'Spine2'] as const;
 
 const avatarEl = document.getElementById('avatar') as HTMLElement;
@@ -9,7 +11,7 @@ const logEl = document.getElementById('log') as HTMLElement;
 const formEl = document.getElementById('form') as HTMLFormElement;
 const inputEl = document.getElementById('input') as HTMLInputElement;
 
-const DEV = new URLSearchParams(location.search).has('dev');
+const DEV = new URLSearchParams(location.search).has('dev') || location.hash === '#dev';
 
 function hasWebGL() {
   try {
@@ -24,12 +26,15 @@ if (!hasWebGL()) {
 
 const head = new TalkingHead(avatarEl, {
   ttsEndpoint: null,
-  lipsyncModules: ['en'],
+  // Lipsync is attached below by a static import, so it also works in the production build.
+  lipsyncModules: [],
   cameraView: 'upper',
   modelFPS: 30,
   // Body lock runs every frame; bodyRest is filled in after the model loads.
   update: () => lockBody(),
 });
+
+head.lipsync['en'] = new LipsyncEn();
 
 // Blink correction (handoff 5.3): must be installed before showAvatar.
 const originalUpdateMorphTargets = head.updateMorphTargets.bind(head);

@@ -4,3 +4,7 @@ declare module '@met4citizen/talkinghead/modules/talkinghead.mjs' {
     [key: string]: any;
   }
 }
+
+declare module '@met4citizen/talkinghead/modules/lipsync-en.mjs' {
+  export class LipsyncEn { [key: string]: any; }
+}
