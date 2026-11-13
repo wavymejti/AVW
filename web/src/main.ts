@@ -9,6 +9,19 @@ const logEl = document.getElementById('log') as HTMLElement;
 const formEl = document.getElementById('form') as HTMLFormElement;
 const inputEl = document.getElementById('input') as HTMLInputElement;
 
+const DEV = new URLSearchParams(location.search).has('dev');
+
+function hasWebGL() {
+  try {
+    const c = document.createElement('canvas');
+    return !!(c.getContext('webgl2') || c.getContext('webgl'));
+  } catch { return false; }
+}
+if (!hasWebGL()) {
+  loadingEl.textContent = 'This browser has no WebGL, so Sniffer cannot be shown.';
+  throw new Error('WebGL not available');
+}
+
 const head = new TalkingHead(avatarEl, {
   ttsEndpoint: null,
   lipsyncModules: ['en'],
@@ -72,7 +85,14 @@ async function loadAvatar() {
   }
 }
 
-// Dev panel (stage 1): moods, ears, surprise, to check the model in the browser.
+// Browsers keep audio suspended until the first user gesture; resume it then.
+function resumeAudio() {
+  if (head.audioCtx?.state === 'suspended') head.audioCtx.resume();
+}
+document.addEventListener('pointerdown', resumeAudio);
+document.addEventListener('keydown', resumeAudio);
+
+// Dev panel, shown only with ?dev in the URL: moods, ears, surprise.
 const devPanel = document.createElement('div');
 devPanel.className = 'dev';
 for (const mood of ['neutral', 'happy', 'angry', 'sad', 'fear', 'disgust', 'love', 'sleep']) {
@@ -84,16 +104,18 @@ devPanel.append(
   button('reset ears', () => { head.setFixedValue('earsUp', null); head.setFixedValue('earsBack', null); }),
   button('surprise!', surprise),
 );
-document.querySelector('.chat')?.prepend(devPanel);
+if (DEV) document.querySelector('.chat')?.prepend(devPanel);
 
 const SURPRISE: Record<string, number> = {
   earsUp: 1, browInnerUp: 1, browOuterUpLeft: 1, browOuterUpRight: 1,
   eyeWideLeft: 1, eyeWideRight: 1, jawOpen: 0.45,
 };
+let surpriseTimer: number | undefined;
 function surprise() {
   head.setFixedValue('earsBack', null);
   for (const k in SURPRISE) head.setFixedValue(k, SURPRISE[k]);
-  setTimeout(() => { for (const k in SURPRISE) head.setFixedValue(k, null); }, 2500);
+  clearTimeout(surpriseTimer);
+  surpriseTimer = window.setTimeout(() => { for (const k in SURPRISE) head.setFixedValue(k, null); }, 2500);
 }
 
 function button(label: string, onClick: () => void) {
