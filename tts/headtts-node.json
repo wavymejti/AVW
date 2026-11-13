@@ -20,11 +20,11 @@
     "languages": ["en-us"],
     "dictionaryPath": "./dictionaries",
     "voicePath": "./voices",
-    "voices": ["af_heart", "am_puck"],
+    "voices": ["am_echo"],
     "deltaStart": -10,
     "deltaEnd": 10,
     "defaults": {
-      "voice": "am_puck",
+      "voice": "am_echo",
       "language": "en-us",
       "speed": 1,
       "audioEncoding": "wav"

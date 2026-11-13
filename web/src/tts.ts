@@ -1,8 +1,9 @@
 // Client for the HeadTTS REST server (POST /v1/synthesize), reached through the Vite proxy at /tts.
 // Turns text into the object TalkingHead.speakAudio() expects: audio + word and viseme timings.
 
+// am_echo is Sniffer's voice (chosen 2026-11-13); the rest stay for comparison.
 export const VOICES = [
-  'am_puck', 'am_fenrir', 'am_michael', 'am_echo', 'bm_fable',
+  'am_echo', 'am_puck', 'am_fenrir', 'am_michael', 'bm_fable',
   'af_heart', 'af_bella', 'af_nicole',
 ] as const;
 

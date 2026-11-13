@@ -101,7 +101,7 @@ document.addEventListener('keydown', resumeAudio);
 // --- Speech (stage 2): text -> HeadTTS -> speakAudio -------------------------------------------
 
 const SETTINGS_KEY = 'sniffer.tts';
-const settings: TtsSettings = { voice: 'am_puck', speed: 1, visemeOffsetMs: 0, ...loadSettings() };
+const settings: TtsSettings = { voice: 'am_echo', speed: 1, visemeOffsetMs: 0, ...loadSettings() };
 
 function loadSettings(): Partial<TtsSettings> {
   try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}'); } catch { return {}; }
