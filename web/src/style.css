@@ -19,3 +19,8 @@ html, body { margin: 0; height: 100%; }
 .composer button { padding: 10px 16px; border-radius: 10px; border: 0; background: #3b82f6; color: #fff; font-size: 16px; }
 .dev { font-size: 12px; padding: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
 .dev button { font-size: 12px; }
+.msg.system { align-self: center; font-size: 13px; opacity: 0.7; background: transparent; }
+.dev-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; width: 100%; }
+.dev-row select { max-width: 100%; font-size: 12px; }
+.dev-row label { display: flex; align-items: center; gap: 4px; }
+.dev-row input[type=range] { width: 90px; }

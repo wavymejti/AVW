@@ -1,5 +1,6 @@
 import { TalkingHead } from '@met4citizen/talkinghead/modules/talkinghead.mjs';
 import { LipsyncEn } from '@met4citizen/talkinghead/modules/lipsync-en.mjs';
+import { synthesize, splitSentences, TtsError, VOICES, TEST_SENTENCES, type TtsSettings } from './tts';
 
 // A host page may provide the model itself (e.g. as a blob: URL) via window.SNIFFER_MODEL_URL.
 const MODEL_URL: string = (window as any).SNIFFER_MODEL_URL ?? 'models/sniffer_avatar_lite.glb';
@@ -97,7 +98,65 @@ function resumeAudio() {
 document.addEventListener('pointerdown', resumeAudio);
 document.addEventListener('keydown', resumeAudio);
 
-// Dev panel, shown only with ?dev in the URL: moods, ears, surprise.
+// --- Speech (stage 2): text -> HeadTTS -> speakAudio -------------------------------------------
+
+const SETTINGS_KEY = 'sniffer.tts';
+const settings: TtsSettings = { voice: 'am_puck', speed: 1, visemeOffsetMs: 0, ...loadSettings() };
+
+function loadSettings(): Partial<TtsSettings> {
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}'); } catch { return {}; }
+}
+function saveSettings() {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* storage unavailable */ }
+}
+
+let speechAbort: AbortController | null = null;
+
+/** Speaks text sentence by sentence; a new call interrupts the previous one. */
+async function say(text: string) {
+  speechAbort?.abort();
+  head.stopSpeaking();
+  const abort = new AbortController();
+  speechAbort = abort;
+  resumeAudio();
+  try {
+    for (const sentence of splitSentences(text)) {
+      const t0 = performance.now();
+      const payload = await synthesize(sentence, settings, head.audioCtx, abort.signal);
+      if (abort.signal.aborted) return;
+      if (DEV) console.info(`TTS ${Math.round(performance.now() - t0)} ms: ${sentence}`);
+      head.speakAudio(payload, { lipsyncLang: 'en' });
+    }
+  } catch (err) {
+    if ((err as Error).name === 'AbortError') return;
+    addMessage('system', err instanceof TtsError ? err.message : `Speech failed: ${(err as Error).message}`);
+    console.error(err);
+  }
+}
+
+// --- Chat log -------------------------------------------------------------------------------------
+
+function addMessage(who: 'user' | 'sniffer' | 'system', text: string) {
+  const msg = document.createElement('div');
+  msg.className = `msg ${who}`;
+  msg.textContent = text;
+  logEl.append(msg);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+// Stage 2: Sniffer reads the typed text aloud. Stage 3 replaces this with the LLM reply.
+formEl.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const text = inputEl.value.trim();
+  if (!text) return;
+  inputEl.value = '';
+  addMessage('user', text);
+  addMessage('sniffer', text);
+  say(text);
+});
+
+// --- Dev panel, shown only with ?dev or #dev: moods, ears, surprise, speech tuning --------------
+
 const devPanel = document.createElement('div');
 devPanel.className = 'dev';
 for (const mood of ['neutral', 'happy', 'angry', 'sad', 'fear', 'disgust', 'love', 'sleep']) {
@@ -109,6 +168,21 @@ devPanel.append(
   button('reset ears', () => { head.setFixedValue('earsUp', null); head.setFixedValue('earsBack', null); }),
   button('surprise!', surprise),
 );
+
+const speechRow = document.createElement('div');
+speechRow.className = 'dev-row';
+const voiceSel = select(VOICES, settings.voice, (v) => { settings.voice = v; saveSettings(); });
+const speed = slider('speed', 0.7, 1.3, 0.05, settings.speed, (v) => { settings.speed = v; saveSettings(); });
+const offset = slider('lips ms', -150, 150, 10, settings.visemeOffsetMs, (v) => { settings.visemeOffsetMs = v; saveSettings(); });
+const testSel = select(TEST_SENTENCES, TEST_SENTENCES[0], () => {});
+let testIndex = 0;
+speechRow.append(
+  voiceSel, speed, offset, testSel,
+  button('say', () => say(testSel.value)),
+  button('next', () => { testIndex = (testIndex + 1) % TEST_SENTENCES.length; testSel.value = TEST_SENTENCES[testIndex]; say(testSel.value); }),
+  button('stop', () => { speechAbort?.abort(); head.stopSpeaking(); }),
+);
+devPanel.append(speechRow);
 if (DEV) document.querySelector('.chat')?.prepend(devPanel);
 
 const SURPRISE: Record<string, number> = {
@@ -131,17 +205,25 @@ function button(label: string, onClick: () => void) {
   return b;
 }
 
-// Chat placeholder (stage 1 only; the LLM and TTS come in stages 2–3).
-formEl.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const text = inputEl.value.trim();
-  if (!text) return;
-  const msg = document.createElement('div');
-  msg.className = 'msg user';
-  msg.textContent = text;
-  logEl.append(msg);
-  inputEl.value = '';
-  logEl.scrollTop = logEl.scrollHeight;
-});
+function select(options: readonly string[], value: string, onChange: (v: string) => void) {
+  const s = document.createElement('select');
+  for (const o of options) s.add(new Option(o, o));
+  s.value = value;
+  s.addEventListener('change', () => onChange(s.value));
+  return s;
+}
+
+function slider(label: string, min: number, max: number, step: number, value: number, onChange: (v: number) => void) {
+  const wrap = document.createElement('label');
+  const out = document.createElement('span');
+  const input = Object.assign(document.createElement('input'), { type: 'range', min, max, step, value });
+  out.textContent = `${label} ${value}`;
+  input.addEventListener('input', () => { const v = Number(input.value); out.textContent = `${label} ${v}`; onChange(v); });
+  wrap.append(out, input);
+  return wrap;
+}
+
+// Debug handle for the browser console in dev mode.
+if (DEV) (window as any).head = head;
 
 loadAvatar();

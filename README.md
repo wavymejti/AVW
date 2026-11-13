@@ -34,3 +34,15 @@ cd web && npm install && npm run dev   # http://localhost:5173  (add ?dev for th
 Vite proxies `/api` to the backend and `/tts` to HeadTTS, so the page calls both on its own origin.
 
 To pick Sniffer's voice: with the TTS server running, `./tts/preview.sh` plays a sample of each downloaded voice.
+
+## Stage 2: speech check (no LLM yet)
+
+With all three processes running, type in the chat: Sniffer reads the text aloud with lipsync.
+Open `http://localhost:5173/#dev` for the tuning panel:
+
+- **voice** and **speed** — sent to HeadTTS with each sentence,
+- **lips ms** — shifts mouth movement against the audio (negative = mouth earlier),
+- **test sentences** with **say** / **next** — a fixed set covering lips (p/b/m), vowels, rounding, sibilants, long words and numbers,
+- moods, ears and **surprise!**.
+
+Settings are kept in the browser (localStorage). In dev mode the TalkingHead instance is `window.head` in the console.
