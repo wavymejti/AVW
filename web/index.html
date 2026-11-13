@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Sniffer</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section id="avatar" class="avatar" aria-label="Sniffer avatar">
+        <div id="loading" class="loading">Loading Sniffer…</div>
+      </section>
+      <section class="chat" aria-label="Chat with Sniffer">
+        <div id="log" class="log"></div>
+        <form id="form" class="composer">
+          <input id="input" type="text" placeholder="Say something to Sniffer" autocomplete="off" />
+          <button id="send" type="submit">Send</button>
+        </form>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
